@@ -22,11 +22,19 @@ export default {
       type: String,
       default: 'HH:mm'
     },
-
-    minuteInterval: {
-      type: Number,
-      default: 1
+    hours: {
+      type: [Array, Function],
+      default: null
     },
+    minutes: {
+      type: [Array, Function],
+      default: () => null
+    },
+    seconds: {
+      type: [Array, Function],
+      default: () => null
+    },
+    
 
     secondInterval: {
       type: Number,
@@ -41,7 +49,7 @@ export default {
     }
   },
 
-  data () {
+  data() {
     return {
       showDropdown: false,
       muteWatch: false,
@@ -50,7 +58,7 @@ export default {
   },
 
   computed: {
-    displayTime () {
+    displayTime() {
       let formatString = this.format
 
       if (this.value[this.hourType]) {
@@ -69,58 +77,77 @@ export default {
       return formatString
     },
 
-    showClearBtn () {
+    showClearBtn() {
       return !!this.value[this.hourType] || !!this.value[this.minuteType]
     },
 
-    hourType () {
+    hourType() {
       return this.checkAcceptingType(CONFIG.HOUR_TOKENS, this.format, 'HH')
     },
 
-    minuteType () {
+    minuteType() {
       return this.checkAcceptingType(CONFIG.MINUTE_TOKENS, this.format, 'mm')
     },
 
-    secondType () {
+    secondType() {
       return this.checkAcceptingType(CONFIG.SECOND_TOKENS, this.format)
     },
 
-    apmType () {
+    apmType() {
       return this.checkAcceptingType(CONFIG.APM_TOKENS, this.format)
     },
 
-    hours () {
+    hoursComputed() {
       const hoursCount = (this.hourType === 'h' || this.hourType === 'hh') ? 12 : 24
+
+      if (this.hours != null) {
+        // Used specified hours, try to use user input
+        if (this.hours instanceof Array)
+          return this.hours;
+        if (typeof this.hours === "function")
+          return this.hours();
+        throw new Error('Hours prop needs to be a function or an array');
+      }
+      //User did not specify hours, use default
       let hours = []
-
-      for (let i = 0; i < hoursCount; i++) {
+      for (let i = 0; i < hoursCount; i++)
         hours.push(this.formatValue(this.hourType, i))
-      }
-
-      return hours
+      return hours;
     },
 
-    minutes () {
+    minutesComputed() {
+      if (this.minutes != null) {
+        if (this.minutes instanceof Array)
+          return this.minutes;
+
+        if (typeof this.minutes === "function") {
+          return this.minutes();
+        }
+        throw new Error('Minutes prop needs to be a function or an array');
+      }
+      //User did not specify minutes, use default
       let minutes = []
-
-      for (let i = 0; i < 60; i += this.minuteInterval) {
+      for (let i = 0; i < 60; i++)
         minutes.push(this.formatValue(this.minuteType, i))
-      }
-
-      return minutes
+      return minutes;
     },
+    secondsComputed() {
+      if (this.seconds != null) {
+        if (this.seconds instanceof Array)
+          return this.seconds;
 
-    seconds () {
+        if (typeof this.seconds === "function") {
+          return this.seconds();
+        }
+        throw new Error('Seconds prop needs to be a function or an array');
+      }
+      //User did not specify seconds, use default
       let seconds = []
-
-      for (let i = 0; i < 60; i += this.secondInterval) {
+      for (let i = 0; i < 60; i++)
         seconds.push(this.formatValue(this.secondType, i))
-      }
-
-      return seconds
+      return seconds;
     },
-
-    apms () {
+    apms() {
       switch (this.apmType) {
         case 'A':
           return ['AM', 'PM']
@@ -131,15 +158,15 @@ export default {
       }
     },
 
-    isTwelveHours () {
+    isTwelveHours() {
       return this.hourType === 'h' || this.hourType === 'hh'
     },
 
-    isPastNoon () {
+    isPastNoon() {
       return this.apm === 'pm' || this.apm === 'PM'
     },
 
-    originalHour () {
+    originalHour() {
       let hour = this.value[this.hourType] % 12
 
       return hour === 0
@@ -149,7 +176,7 @@ export default {
   },
 
   methods: {
-    formatValue (type, i) {
+    formatValue(type, i) {
       switch (type) {
         case 'H':
         case 'm':
@@ -170,7 +197,7 @@ export default {
       }
     },
 
-    checkAcceptingType (validValues, formatString, fallbackValue) {
+    checkAcceptingType(validValues, formatString, fallbackValue) {
       if (!validValues || !formatString || !formatString.length) { return '' }
 
       const length = validValues.length
@@ -184,11 +211,11 @@ export default {
       return fallbackValue || ''
     },
 
-    toggleDropdown () {
+    toggleDropdown() {
       this.showDropdown = !this.showDropdown && !this.disabled
     },
 
-    computeHour (value) {
+    computeHour(value) {
       value = parseInt(value)
 
       value = (this.isTwelveHours && this.isPastNoon)
@@ -206,28 +233,28 @@ export default {
       return (value < 10 ? '0' : '') + value
     },
 
-    onHourSelect (value) {
+    onHourSelect(value) {
       const newValue = this.value
       newValue[this.hourType] = this.computeHour(value)
 
       this.$emit('input', newValue)
     },
 
-    onMinuteSelect (value) {
+    onMinuteSelect(value) {
       const newValue = this.value
       newValue[this.minuteType] = value
 
       this.$emit('input', newValue)
     },
 
-    onSecondSelect (value) {
+    onSecondSelect(value) {
       const newValue = this.value
       newValue[this.secondType] = value
 
       this.$emit('input', newValue)
     },
 
-    onApmSelect (value) {
+    onApmSelect(value) {
       this.apm = value
 
       if (parseFloat(this.value[this.hourType]) && isFinite(this.value[this.hourType])) {
@@ -238,7 +265,7 @@ export default {
       }
     },
 
-    clearTime () {
+    clearTime() {
       let time = {}
 
       time[this.hourType] = ''
@@ -250,58 +277,38 @@ export default {
     }
   },
 
-  mounted () {
+  mounted() {
     this.apm = this.apms[0]
   }
 }
 </script>
 
 <template>
-<span class="time-picker">
-  <input class="display-time" :readonly="!disabled" :disabled="disabled" :value="displayTime" @click.stop="toggleDropdown" type="text" />
-  <span class="clear-btn" v-if="!hideClearButton" v-show="!showDropdown && showClearBtn" @click.stop="clearTime">&times;</span>
-  <div class="time-picker-overlay" v-if="showDropdown" @click.stop="toggleDropdown"></div>
-  <div class="dropdown" v-show="showDropdown">
-    <div class="select-list">
-      <ul class="hours">
-        <li class="hint" v-text="hourType"></li>
-        <li
-          v-for="hr in hours"
-          v-text="hr"
-          v-show="disabledValues.hour.indexOf(hr) === -1"
-          :class="{active: originalHour === hr}"
-          @click.stop="onHourSelect(hr)"></li>
-      </ul>
-      <ul class="minutes">
-        <li class="hint" v-text="minuteType"></li>
-        <li
-          v-for="m in minutes"
-          v-text="m"
-          v-show="disabledValues.minute.indexOf(m) === -1"
-          :class="{active: value[minuteType] === m}"
-          @click.stop="onMinuteSelect(m)"></li>
-      </ul>
-      <ul class="seconds" v-if="secondType">
-        <li class="hint" v-text="secondType"></li>
-        <li
-          v-for="s in seconds"
-          v-text="s"
-          v-show="disabledValues.second.indexOf(s) === -1"
-          :class="{active: value[secondType] === s}"
-          @click.stop="onSecondSelect(s)"></li>
-      </ul>
-      <ul class="apms" v-if="apmType">
-        <li class="hint" v-text="apmType"></li>
-        <li
-          v-for="a in apms"
-          v-text="a"
-          v-show="disabledValues.apm.indexOf(a) === -1"
-          :class="{active: apm === a}"
-          @click.stop="onApmSelect(a)"></li>
-      </ul>
+  <span class="time-picker">
+    <input class="display-time" :readonly="!disabled" :disabled="disabled" :value="displayTime" @click.stop="toggleDropdown" type="text" />
+    <span class="clear-btn" v-if="!hideClearButton" v-show="!showDropdown && showClearBtn" @click.stop="clearTime">&times;</span>
+    <div class="time-picker-overlay" v-if="showDropdown" @click.stop="toggleDropdown"></div>
+    <div class="dropdown" v-show="showDropdown">
+      <div class="select-list">
+        <ul class="hours">
+          <li class="hint" v-text="hourType"></li>
+          <li v-for="hr in hoursComputed" v-text="hr" v-show="disabledValues.hour.indexOf(hr) === -1" :class="{active: originalHour === hr}" @click.stop="onHourSelect(hr)"></li>
+        </ul>
+        <ul class="minutes">
+          <li class="hint" v-text="minuteType"></li>
+          <li v-for="m in minutesComputed" v-text="m" v-show="disabledValues.minute.indexOf(m) === -1" :class="{active: value[minuteType] === m}" @click.stop="onMinuteSelect(m)"></li>
+        </ul>
+        <ul class="seconds" v-if="secondType">
+          <li class="hint" v-text="secondType"></li>
+          <li v-for="s in secondsComputed" v-text="s" v-show="disabledValues.second.indexOf(s) === -1" :class="{active: value[secondType] === s}" @click.stop="onSecondSelect(s)"></li>
+        </ul>
+        <ul class="apms" v-if="apmType">
+          <li class="hint" v-text="apmType"></li>
+          <li v-for="a in apms" v-text="a" v-show="disabledValues.apm.indexOf(a) === -1" :class="{active: apm === a}" @click.stop="onApmSelect(a)"></li>
+        </ul>
+      </div>
     </div>
-  </div>
-</span>
+  </span>
 </template>
 
 <style>
